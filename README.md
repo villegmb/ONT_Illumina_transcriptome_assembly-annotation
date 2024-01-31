@@ -35,7 +35,7 @@ First, we must create separate alignments with Illumina and direct ONT reads.
     
     samtools view -bS illumina_alignment.sam > illumina_alignment.bam samtools sort -o sorted_illumina_alignment.bam illumina_alignment.bam 
 
-# Index the reference genome or transcriptome flair index -g reference.fasta # Align the long reads to the reference flair align -r reads.fastq -i index_dir -v # Quantify isoform abundance flair quantify -r reads.bam -i index_dir -q 
+Index the reference genome or transcriptome flair index -g reference.fasta # Align the long reads to the reference flair align -r reads.fastq -i index_dir -v # Quantify isoform abundance flair quantify -r reads.bam -i index_dir -q 
 Another tool you can consider is Sqanti (from the IsoSeq toolkit), which is specifically designed for analyzing isoform diversity and quantification in long-read sequencing data
 
 **3) Transcriptome Assembly:**
@@ -58,80 +58,75 @@ I used ``BUSCO`` to asses transcriptome completeness.
 For more information about TransDecoder https://github.com/TransDecoder/TransDecoder/wiki
 
 **Step 1:** Extract the long open reading frames
+	
+ 	> TransDecoder.LongOrfs -t <assemblied_transcriptome.fasta>
 
-		>TransDecoder.LongOrfs -t <assemblied_transcriptome.fasta>
-
-TransDecoder produces a file a new directory "./<assemblied_transcriptome.fasta>.transdecoder_dir/", where you can find the file "longest_orfs.pep" that we are going to use in the next step. 
+TransDecoder produces a file in a new directory "./<assemblied_transcriptome.fasta>.transdecoder_dir/", where you can find the file "longest_orfs.pep" that we are going to use in the next step. 
 
 **Step 2:** Identify ORFs with homology 
 
-For searching for homologies, we need to download and decompress the files for creating the databases. Let's start with the databases for blastp searches: 
+To search for homologies, we need to download and decompress the files to create the databases. Let's start with the databases for Blastp searches: 
 
+_________________________________________________________________
 **Databases**
-# ______________________________________________________________________________________________
-**2.1)** Use these links to download the files and decompress them:
+
+**2.1)** Use these links to download the files, and decompress them:
 
 **SwissProt:** ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+
 **TrEMBL:** ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
-# ______________________________________________________________________________________________
 
 **2.2)** Rename the files and use ``ncbi-blast+`` (I used version 2.13.0) to create the blast databases:
+
 		> mv uniprot_sprot.fasta sport
 		> mv uniprot_trembl.fasta trembl
 		> makeblastdb -in sprot -dbtype prot -title "UniProt/Swiss-Prot (Jan 2024)" -parse_seqids
 		> makeblastdb -in trembl -dbtype prot -title "UniProt/TrEMBL (Jan 2024)" -parse_seqids
 
-NR: 
-makeblastdb -in nr -dbtype prot -title "NCBI nr (Jan 2024)" -parse_seqids
-
 _________________________________________________________________
 
 **NR Database from NCBI**
 
-You can use wget "link" and tar loops to decompress the files, or you can use the next command from ``ncbi-blast+``
+This database is composed of 83 databases. You can use wget "link" and tar loops to decompress the files from:
 
-update_blastdb.pl --decompress nr
-
-*It check all the files and update them. However, while I was running this code, it stopped several times. So, I recommend running it repeatedly until you can see all the decompressed files in the folder. To date (February 2024), you should see up to 83 sets of files. These files are already formatted as a database so that you can skip the "makeblatdb" step you did for the other two databases. 
+ftp://ftp.ncbi.nlm.nih.gov/blast/db/ and look for files in the pattern of nr.*.tar.gz.
 
 
+or you can use the next command from ``ncbi-blast+``:
 
+		> update_blastdb.pl --decompress nr
 
+It checks all the files and updates them. However, while I was running this code, it stopped several times. So, I recommend running it repeatedly until you can see all the decompressed files in the folder. To date (February 2024), you should see up to 83 sets of files. These files are already formatted as a database, so you can skip the "makeblatdb" step you did for the other two databases. 
 
-blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
--db sprot -max_target_seqs 20 \
--outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_20
-> blastp.outfmt6
+Now we can run Blastp:
+
+		> blast -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> -db sprot -max_target_seqs 20 \
+		> -outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_sprot
+_________________________________________________________________
+
+		> blastp -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> -db trembl -max_target_seqs 20 \
+		> -outfmt 6 -evalue 1e-5 -num_threads 50 > blastp.outfmt6_trembl
 
 _________________________________________________________________
 
-blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
--db trembl -max_target_seqs 20 \
--outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_trembl
+		> blastp -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> -db nr -max_target_seqs 20 \
+		> -outfmt 6 -evalue 1e-5 -num_threads 50 > blastp.outfmt6_nr
 
 _________________________________________________________________
 
+**PFAM** 
 
+For downloading the database: ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz 
 
-blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
--db nr -max_target_seqs 20 \
--outfmt 6 -evalue 1e-5 -num_threads 50 > blastp.outfmt6_nr
+Pfam is for checking for homologies with protein domain families, to run the search we use HMMER (http://hmmer.org/).
 
-
-PFAM ____________________________________________________________
-
-ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz
-
-gunzip Pfam-A.hmm.gz
-
-hmmpress Pfam-A.hmm
-
-Pfam Search______________________________________________________
-		
 		> export HMMERDB=/ibex/tmp/c2078/Heat_stress_analysis/scripts/Pfam-A.hmm
 		> hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
 
-**Step 3:** predict the likely coding regions
+**Step 3:** Predict the likely coding regions
 		> TransDecoder.Predict -t Ahem_transcripts_with_reference.fa --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6
 
 
