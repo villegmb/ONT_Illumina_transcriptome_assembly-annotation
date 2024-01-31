@@ -44,40 +44,42 @@ I assembled the transcriptome using StringTie because it has a "-mix" option, wh
     
     stringtie sorted_illumina_alignment.bam flair_aligned_ONT.bam --mix -p 24 -G reference.gtf -o transcriptome_output.gtf
 
+Creating transcriptome using the GTF
+
 **3) Transcriptome Evaluation:**
 
 I used ``BUSCO`` to asses transcriptome completeness.
 
--	Visualize the assembled transcripts along with the reference genome using genome browsers like IGV or UCSC Genome Browser.
+-	Visualize the assembled transcripts and the reference genome using genome browsers like IGV or UCSC Genome Browser.
   
 ## **ANNOTATION**
 
+**A)** In this part, TransDecoder identifies possible Open Reading Frames (ORF) in our transcripts and produces a multiFasta file with the longest possible proteins (.pep extension). Then, this file is used to find homologies with protein domains in the PFAM database and annotated proteins in the Swiss-Prot, TrEMBL, and NR databases.
+For more information about TransDecoder https://github.com/TransDecoder/TransDecoder/wiki
+
 **Step 1:** Extract the long open reading frames
 
-TransDecoder.LongOrfs -t Ahem_transcripts_with_reference.fa
+		>TransDecoder.LongOrfs -t <assemblied_transcriptome.fasta>
 
-        Use file: /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep  for Pfam and/or BlastP searches to enable homology-based coding region identification.
-
-        Then, run TransDecoder.Predict for your final coding region predictions.
+TransDecoder produces a file a new directory "./<assemblied_transcriptome.fasta>.transdecoder_dir/", where you can find the file "longest_orfs.pep" that we are going to use in the next step. 
 
 **Step 2:** Identify ORFs with homology 
 
-Optional - blast or pfam searches.
+For searching for homologies, we need to download and decompress the files for creating the databases. Let's start with the databases for blastp searches: 
 
-**DATABASES**
-#______________________________________________________________________________________________
+**Databases**
+# ______________________________________________________________________________________________
+**2.1)** Use these links to download the files and decompress them:
+
 **SwissProt:** ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
 **TrEMBL:** ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
-#______________________________________________________________________________________________
-mv uniprot_sprot.fasta sprot
+# ______________________________________________________________________________________________
 
-mv uniprot_trembl.fasta trembl
-
-ncbi-blast+ 2.13.0
-
-makeblastdb -in sprot -dbtype prot -title "UniProt/Swiss-Prot (Jan 2024)" -parse_seqids
-
-makeblastdb -in trembl -dbtype prot -title "UniProt/TrEMBL (Jan 2024)" -parse_seqids
+**2.2)** Rename the files and use ``ncbi-blast+`` (I used version 2.13.0) to create the blast databases:
+		> mv uniprot_sprot.fasta sport
+		> mv uniprot_trembl.fasta trembl
+		> makeblastdb -in sprot -dbtype prot -title "UniProt/Swiss-Prot (Jan 2024)" -parse_seqids
+		> makeblastdb -in trembl -dbtype prot -title "UniProt/TrEMBL (Jan 2024)" -parse_seqids
 
 NR: 
 makeblastdb -in nr -dbtype prot -title "NCBI nr (Jan 2024)" -parse_seqids
