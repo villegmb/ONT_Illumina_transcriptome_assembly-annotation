@@ -67,3 +67,11 @@ Compare the assembled transcriptome with a reference annotation (if available) u
 After aligning the reads, you can use tools designed for isoform detection and quantification. One popular tool for this purpose is Flair. Flair combines information from splice junctions and poly(A) sites to identify and quantify full-length isoforms. You can find it here: Flair GitHub repository.
 #flair align -r <genome_annotation.gtf> -b <input_bam_file1> <input_bam_file2> ... -o <output_directory>
 
+
+
+I checked using R if there where predicted_proteins from transcoder (including PFAM and Blastp against Swiss-Prot) for all the transcripts. Then I filtered the "longest PEP proteins fasta", to run blast ensembl and NR against this.  
+
+
+
+
+
