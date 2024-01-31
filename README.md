@@ -52,7 +52,7 @@ I used ``BUSCO`` to asses transcriptome completeness.
   
 ## **ANNOTATION**
 
-Step 1: extract the long open reading frames
+**Step 1:** Extract the long open reading frames
 
 TransDecoder.LongOrfs -t Ahem_transcripts_with_reference.fa
 
@@ -60,20 +60,20 @@ TransDecoder.LongOrfs -t Ahem_transcripts_with_reference.fa
 
         Then, run TransDecoder.Predict for your final coding region predictions.
 
-Step 2: Identify ORFs with homology 
+**Step 2:** Identify ORFs with homology 
 
 Optional - blast or pfam searches.
 
-BLAST DATABASES__________________________________________________
-
-SwissProt: 
-ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
-
-TrEMBL: ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
-
+**DATABASES**
+#______________________________________________________________________________________________
+**SwissProt:** ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+**TrEMBL:** ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
+#______________________________________________________________________________________________
 mv uniprot_sprot.fasta sprot
 
 mv uniprot_trembl.fasta trembl
+
+ncbi-blast+ 2.13.0
 
 makeblastdb -in sprot -dbtype prot -title "UniProt/Swiss-Prot (Jan 2024)" -parse_seqids
 
@@ -84,74 +84,24 @@ makeblastdb -in nr -dbtype prot -title "NCBI nr (Jan 2024)" -parse_seqids
 
 _________________________________________________________________
 
-$ module load ncbi-blast+
-Loading module for ncbi-blast+
-ncbi-blast+ 2.13.0 is now loaded
+**NR Database from NCBI**
 
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J database_nr
-#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/database_nr.%J.out
-#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/database_nr.%J.err
-#SBATCH --time=150:30:00
-#SBATCH --mem=500G
-#SBATCH --cpus-per-task=24
+You can use wget "link" and tar loops to decompress the files, or you can use the next command from ``ncbi-blast+``
 
 update_blastdb.pl --decompress nr
 
-*to Check all the files and update them
+*It check all the files and update them. However, while I was running this code, it stopped several times. So, I recommend running it repeatedly until you can see all the decompressed files in the folder. To date (February 2024), you should see up to 83 sets of files. These files are already formatted as a database so that you can skip the "makeblatdb" step you did for the other two databases. 
 
-However, I had to use wget to download again many of the files, and decompress it one by one.
 
-wget "link"
 
-_________________________________________________________________
 
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J ftps_tar_nr_83
-#SBATCH -o ftps_tar_nr_83.%J.out
-#SBATCH -e ftps_tar_nr_83.%J.err
-#SBATCH --time=10:00:00
-#SBATCH --mem=200G
-#SBATCH --cpus-per-task=24
-
-tar zxvf nr.83.tar.gz.1
-
-_________________________________________________________________
-
-BLASTP __________________________________________________________
-
-Running:
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J transcoder_blast_uniprot
-#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast_uniprot.%J.out
-#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast_uniprot.%J.err
-#SBATCH --time=150:30:00
-#SBATCH --mem=500G
-#SBATCH --cpus-per-task=24
 
 blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
 -db sprot -max_target_seqs 20 \
 -outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_20
-							 > blastp.outfmt6
+> blastp.outfmt6
 
 _________________________________________________________________
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J transcoder_blast
-#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast.%J.out
-#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast.%J.err
-#SBATCH --time=150:30:00
-#SBATCH --mem=500G
-#SBATCH --cpus-per-task=24
 
 blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
 -db trembl -max_target_seqs 20 \
@@ -159,15 +109,7 @@ blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with
 
 _________________________________________________________________
 
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J transcoder_blastp_nr
-#SBATCH -o transcoder_blastp_nr.%J.out
-#SBATCH -e transcoder_blastp_nr.%J.err
-#SBATCH --time=150:30:00
-#SBATCH --mem=200G
-#SBATCH --cpus-per-task=50
+
 
 blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
 -db nr -max_target_seqs 20 \
@@ -183,38 +125,12 @@ gunzip Pfam-A.hmm.gz
 hmmpress Pfam-A.hmm
 
 Pfam Search______________________________________________________
+		
+		> export HMMERDB=/ibex/tmp/c2078/Heat_stress_analysis/scripts/Pfam-A.hmm
+		> hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
 
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J transcoder_hmmer
-#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_hmmer.%J.out
-#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_hmmer.%J.err
-#SBATCH --time=150:30:00
-#SBATCH --mem=500G
-#SBATCH --cpus-per-task=24
-
-export HMMERDB=/ibex/tmp/c2078/Heat_stress_analysis/scripts/Pfam-A.hmm
-
-#module load hmmer
-
-hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
-
-
-
-Step 3: predict the likely coding regions
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J transcoder_predict
-#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_predict.%J.out
-#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_predict.%J.err
-#SBATCH --time=50:30:00
-#SBATCH --mem=100G
-#SBATCH --cpus-per-task=24
-
-TransDecoder.Predict -t Ahem_transcripts_with_reference.fa --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6
+**Step 3:** predict the likely coding regions
+		> TransDecoder.Predict -t Ahem_transcripts_with_reference.fa --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6
 
 
 # IN PROCESS
@@ -234,6 +150,7 @@ After aligning the reads, you can use tools designed for isoform detection and q
 
 I checked using R if there where predicted_proteins from transcoder (including PFAM and Blastp against Swiss-Prot) for all the transcripts. Then I filtered the "longest PEP proteins fasta", to run blast ensembl and NR against this.  
 
+awk -F'\t' '{print $2}' transcripts_without_predicted_proteins.tsv > output_column_2.txt
 
 
 
