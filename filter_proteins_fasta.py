@@ -1,4 +1,3 @@
-(base) [villegmb@login509-02-l scripts]$ more filter_proteins_fasta.py
 #!/usr/bin/env python3
 
 import sys  # Import the sys module for writing to stderr
