@@ -49,8 +49,7 @@ def process_fasta(input_fasta, output_fasta, transcripts_file):
 
 input_fasta = "/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep"
 transcripts_file = "/ibex/tmp/c2078/Heat_stress_analysis/scripts/output_column_2_no_quotes.txt"
-output_fasta = "/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep_filtered_protein.f
-asta"
+output_fasta = "/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep_filtered_protein.fasta"
 
 # Process the fasta file
 process_fasta(input_fasta, output_fasta, transcripts_file)
