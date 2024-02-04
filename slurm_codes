@@ -1,0 +1,166 @@
+Sbatch files
+
+Assembly process
+
+
+Links
+/ibex/tmp/c2078/Heat_stress_analysis/scripts
+
+Flair ______________________________________________________
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J flair_assembly_2
+#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/flair_assembly_2.%J.out
+#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/flair_assembly_2.%J.err
+#SBATCH --time=50:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+#flair align -r <genome_annotation.gtf> -b <input_bam_file1> <input_bam_file2> ... -o <output_directory>
+
+conda activate epitranscriptomics
+
+flair align -r /ibex/tmp/c2078/Heat_stress_analysis/xpore/data/A57.augustus.hints.gtf -b /ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_25rep1/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
+
+/ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_25rep2/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
+
+/ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_25rep3/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
+
+/ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_34rep1/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
+
+/ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_34rep2/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
+
+/ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_34rep3/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
+-o /ibex/scratch/projects/c2078/transcriptome_assembly/flair_output
+
+illumina_assembly.sam
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J flair_assembly_2
+#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/flair_assembly_2.%J.out
+#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/flair_assembly_2.%J.err
+#SBATCH --time=50:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+conda activate epitranscriptomics
+
+flair align -g /ibex/tmp/c2078/Heat_stress_analysis/xpore/A57.asm.bp.p_ctg.fa\
+-r /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_25Rep1/fastq_pass/combined_25rep1.fastq,/ibex/scratch/projects/c2078/Villegmb
+/20230913_P4U2_2/20230913_P4U2_25rep2/fastq_pass/combined_25rep2.fastq,/ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_25rep3/fa
+stq_pass/combined_25rep3.fastq,/ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_34Rep1/fastq_pass/combined_34rep1.fastq,/ibex/scr
+atch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_34rep2/fastq_pass/combined_34rep2.fastq, /ibex/scratch/projects/c2078/Villegmb/20230913_P
+4U2_2/20230913_P4U2_34rep3/fastq_pass/combined_34rep3.fastq \
+--threads 24
+
+
+stringtie_mix _____________________________________________________
+
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J stringtie_mix
+#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/stringtie_mix.%J.out
+#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/stringtie_mix.%J.err
+#SBATCH --time=50:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+
+stringtie illumina_alignment.bam flair.aligned.bam --mix -p 24 -o /ibex/scratch/projects/c2078/transcriptome_assembly/Ahem_transcriptome.gtf
+
+
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J stringtie_mix
+#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/stringtie_mix.%J.out
+#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/stringtie_mix.%J.err
+#SBATCH --time=50:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+#stringtie -L -o long_reads.out.gtf long_reads.bam
+
+stringtie flair.aligned.bam -A -p 24 -L -o /ibex/scratch/projects/c2078/transcriptome_assembly/Ahem_transcriptome_long_Reads.gtf
+
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcriptome_fasta
+#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/ transcriptome_fasta
+.%J.out
+#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/ transcriptome_fasta
+.%J.err
+#SBATCH --time=50:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+./gffread/gffread -w Ahem_transcripts.fa -g /ibex/tmp/c2078/Heat_stress_analysis/xpore/A57.asm.bp.p_ctg.fa /ibex/scratch/projects/c2078/transcriptome_assembly/Ahem_transcriptome.gtf
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J BUSCO_transcriptome_stringtie
+#SBATCH -o BUSCO_transcriptome_stringtie.%J.out
+#SBATCH -e BUSCO_transcriptome_stringtie.%J.err
+#SBATCH --time=20:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+export BUSCO_CONFIG_FILE="/path/to/myconfig.ini"
+
+busco -i Ahem_transcripts.fa -l metazoa_odb10 -o transcriptome_stringtie -m tran -f
+
+
+
+
+sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/pro
+jects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta
+
+export BUSCO_CONFIG_FILE="/path/to/myconfig.ini"
+
+busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta -l metazoa_odb10 -o transcripto
+me_AHEM -m tran -f -c 24
+/ibex/tmp/c2078/Heat_stress_analysis/scripts/transcripts_without_predicted_proteins.tsv
+
+
+/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
+
+
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J longest_orfs.cds_names 
+#SBATCH -o longest_orfs.cds_names.%J.out
+#SBATCH -e longest_orfs.cds_names.%J.err
+#SBATCH --time=20:30:00
+#SBATCH --mem=100G
+#SBATCH --cpus-per-task=24
+
+# Extract lines starting with ">" from the input file and save them to a new file
+grep "^>" /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.cds | awk -F " " '{print $1}' > longest_orfs.cds_names.txt
+
+then I used R, to confirm.
+
+
+
+Now. I am going to reduce the long proteins PEP file from transcoder, to do the blasts EMBBL Y NR.
+
+
+
+
+
+
+/ibex/tmp/c2078/Heat_stress_analysis/scripts/transcripts_without_predicted_proteins.tsv
+
+
+/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
