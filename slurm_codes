@@ -1,8 +1,4 @@
 Sbatch files
-
-Assembly process
-
-
 Links
 /ibex/tmp/c2078/Heat_stress_analysis/scripts
 
@@ -19,23 +15,17 @@ Flair ______________________________________________________
 #SBATCH --cpus-per-task=24
 
 #flair align -r <genome_annotation.gtf> -b <input_bam_file1> <input_bam_file2> ... -o <output_directory>
-
 conda activate epitranscriptomics
-
 flair align -r /ibex/tmp/c2078/Heat_stress_analysis/xpore/data/A57.augustus.hints.gtf -b /ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_25rep1/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
-
 /ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_25rep2/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
-
 /ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_25rep3/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
-
 /ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_34rep1/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
-
 /ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_34rep2/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
-
 /ibex/scratch/projects/c2078/Heat_stress_analysis/bam_files/bam_34rep3/FULL_BAM_aligned_reads_FULL_genome_mapont.bam
 -o /ibex/scratch/projects/c2078/transcriptome_assembly/flair_output
-
 illumina_assembly.sam
+
+Flair 2 ______________________________________________________
 
 #!/bin/bash --login
 #SBATCH -N 1
@@ -57,9 +47,7 @@ atch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_34rep2/fastq_pass/com
 4U2_2/20230913_P4U2_34rep3/fastq_pass/combined_34rep3.fastq \
 --threads 24
 
-
 stringtie_mix _____________________________________________________
-
 
 #!/bin/bash --login
 #SBATCH -N 1
@@ -70,40 +58,24 @@ stringtie_mix _____________________________________________________
 #SBATCH --time=50:30:00
 #SBATCH --mem=500G
 #SBATCH --cpus-per-task=24
-
 
 stringtie illumina_alignment.bam flair.aligned.bam --mix -p 24 -o /ibex/scratch/projects/c2078/transcriptome_assembly/Ahem_transcriptome.gtf
 
-
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J stringtie_mix
-#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/stringtie_mix.%J.out
-#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/stringtie_mix.%J.err
-#SBATCH --time=50:30:00
-#SBATCH --mem=500G
-#SBATCH --cpus-per-task=24
-
-#stringtie -L -o long_reads.out.gtf long_reads.bam
-
-stringtie flair.aligned.bam -A -p 24 -L -o /ibex/scratch/projects/c2078/transcriptome_assembly/Ahem_transcriptome_long_Reads.gtf
-
+_____________________________________________________
 
 #!/bin/bash --login
 #SBATCH -N 1
 #SBATCH --partition=batch
 #SBATCH -J transcriptome_fasta
-#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/ transcriptome_fasta
-.%J.out
-#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/ transcriptome_fasta
-.%J.err
+#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/ transcriptome_fasta.%J.out
+#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/ transcriptome_fasta.%J.err
 #SBATCH --time=50:30:00
 #SBATCH --mem=500G
 #SBATCH --cpus-per-task=24
 
 ./gffread/gffread -w Ahem_transcripts.fa -g /ibex/tmp/c2078/Heat_stress_analysis/xpore/A57.asm.bp.p_ctg.fa /ibex/scratch/projects/c2078/transcriptome_assembly/Ahem_transcriptome.gtf
+
+_____________________________________________________
 
 #!/bin/bash --login
 #SBATCH -N 1
@@ -116,11 +88,7 @@ stringtie flair.aligned.bam -A -p 24 -L -o /ibex/scratch/projects/c2078/transcri
 #SBATCH --cpus-per-task=24
 
 export BUSCO_CONFIG_FILE="/path/to/myconfig.ini"
-
 busco -i Ahem_transcripts.fa -l metazoa_odb10 -o transcriptome_stringtie -m tran -f
-
-
-
 
 sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/pro
 jects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta
@@ -131,10 +99,9 @@ busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_D
 me_AHEM -m tran -f -c 24
 /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcripts_without_predicted_proteins.tsv
 
-
 /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
 
-
+_____________________________________________________
 
 #!/bin/bash --login
 #SBATCH -N 1
@@ -149,18 +116,283 @@ me_AHEM -m tran -f -c 24
 # Extract lines starting with ">" from the input file and save them to a new file
 grep "^>" /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.cds | awk -F " " '{print $1}' > longest_orfs.cds_names.txt
 
-then I used R, to confirm.
+then I used R to confirm.
 
+_____________________________________________________
 
-
-Now. I am going to reduce the long proteins PEP file from transcoder, to do the blasts EMBBL Y NR.
-
-
-
-
-
+Now. I am going to reduce the long proteins PEP file from the transcoder "longest PEP to do the blasts EMBBL Y NR.
 
 /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcripts_without_predicted_proteins.tsv
 
-
 /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
+
+
+Step 1: extract the long open reading frames
+
+_________________________________________________________________
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcoder_orf
+#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_orf.%J.out
+#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_orf.%J.err
+#SBATCH --time=150:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+d
+
+TransDecoder.LongOrfs -t Ahem_transcripts_with_reference.fa
+
+RESULT __________________________________________________________
+
+#################################
+### Done preparing long ORFs.  ###
+##################################
+
+        Use file: /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep  for Pfam and/or BlastP searches to enable homology-based coding region identification.
+
+        Then, run TransDecoder.Predict for your final coding region predictions.
+
+Step 2: Identify ORFs with homology 
+
+Optional - blast or pfam searches.
+
+BLAST DATABASES__________________________________________________
+
+SwissProt: 
+ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+
+TrEMBL: ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
+
+mv uniprot_sprot.fasta sprot
+
+mv uniprot_trembl.fasta trembl
+
+makeblastdb -in sprot -dbtype prot -title "UniProt/Swiss-Prot (Jan 2024)" -parse_seqids
+
+makeblastdb -in trembl -dbtype prot -title "UniProt/TrEMBL (Jan 2024)" -parse_seqids
+
+NR: 
+makeblastdb -in nr -dbtype prot -title "NCBI nr (Jan 2024)" -parse_seqids
+
+_________________________________________________________________
+
+$ module load ncbi-blast+
+Loading module for ncbi-blast+
+ncbi-blast+ 2.13.0 is now loaded
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J database_nr
+#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/database_nr.%J.out
+#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/database_nr.%J.err
+#SBATCH --time=150:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+update_blastdb.pl --decompress nr
+
+*to Check all the files and update them
+
+However, I had to use wget to download again many of the files, and decompress it one by one.
+
+wget "link"
+
+_________________________________________________________________
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J ftps_tar_nr_83
+#SBATCH -o ftps_tar_nr_83.%J.out
+#SBATCH -e ftps_tar_nr_83.%J.err
+#SBATCH --time=10:00:00
+#SBATCH --mem=200G
+#SBATCH --cpus-per-task=24
+
+tar zxvf nr.83.tar.gz.1
+
+_________________________________________________________________
+
+BLASTP __________________________________________________________
+
+Running:
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcoder_blast_uniprot
+#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast_uniprot.%J.out
+#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast_uniprot.%J.err
+#SBATCH --time=150:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
+-db sprot -max_target_seqs 20 \
+-outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_20
+							 > blastp.outfmt6
+
+_________________________________________________________________
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcoder_blast
+#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast.%J.out
+#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast.%J.err
+#SBATCH --time=150:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
+-db trembl -max_target_seqs 20 \
+-outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_trembl
+
+_________________________________________________________________
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcoder_blastp_nr
+#SBATCH -o transcoder_blastp_nr.%J.out
+#SBATCH -e transcoder_blastp_nr.%J.err
+#SBATCH --time=150:30:00
+#SBATCH --mem=200G
+#SBATCH --cpus-per-task=50
+
+blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
+-db nr -max_target_seqs 20 \
+-outfmt 6 -evalue 1e-5 -num_threads 50 > blastp.outfmt6_nr
+
+
+PFAM ____________________________________________________________
+
+ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz
+
+gunzip Pfam-A.hmm.gz
+
+hmmpress Pfam-A.hmm
+
+Pfam Search______________________________________________________
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcoder_hmmer
+#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_hmmer.%J.out
+#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_hmmer.%J.err
+#SBATCH --time=150:30:00
+#SBATCH --mem=500G
+#SBATCH --cpus-per-task=24
+
+export HMMERDB=/ibex/tmp/c2078/Heat_stress_analysis/scripts/Pfam-A.hmm
+
+#module load hmmer
+
+hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
+
+
+
+Step 3: predict the likely coding regions
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcoder_predict
+#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_predict.%J.out
+#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_predict.%J.err
+#SBATCH --time=50:30:00
+#SBATCH --mem=100G
+#SBATCH --cpus-per-task=24
+
+TransDecoder.Predict -t Ahem_transcripts_with_reference.fa --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6
+
+RESULT __________________________________________________________
+
+The final set of candidate coding regions can be found as files '.transdecoder.' where extensions include .pep, .cds, .gff3, and .bed
+
+KOFAM __________________________________________________________
+
+
+
+
+
+hmmer/3.3.2
+parallel is already in IBEX. Los amo. Nunca cambien
+
+
+-----------------------------------------------------------------
+ VVV
+INTERPROSCSOM
+
+
+InterProScan:
+
+Run InterProScan on your sequences. InterProScan integrates multiple domain prediction methods and databases, including Pfam, SMART, PRINTS, and others. It provides a comprehensive analysis of protein families, domains, and functional sites.
+
+bash
+
+interproscan.sh -i your_sequences.fasta -f tsv
+
+The output from InterProScan includes information about protein domains, families, and functional sites predicted for each input sequence.
+
+Annotation Integration:
+
+Integrate the results from BLASTp, Pfam, and InterProScan into a unified annotation dataset. This consolidation ensures a comprehensive view of the functional elements present in your sequences.
+
+Functional Enrichment Analysis:
+
+Perform functional enrichment analysis to identify overrepresented Gene Ontology (GO) terms or other functional categories within your dataset. This step helps uncover biological themes and enrichments.
+Data Visualization and Interpretation:
+
+Visualize the annotation results using tools like heatmaps, bar charts, or network diagrams. Interpret the findings in the context of your research question and gain insights into the functional characteristics of your sequences.
+By incorporating InterProScan into your annotation pipeline, you enhance the functional characterization of your sequences by considering a broader range of protein families and domains beyond individual Pfam domains.
+
+
+interproscan.sh -i your_input.fasta -o output_directory -f tsv
+
+
+
+
+
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J count_proteins
+#SBATCH -o count_proteins.%J.out
+#SBATCH -e count_proteins.%J.err
+#SBATCH --time=50:30:00
+#SBATCH --mem=100G
+#SBATCH --cpus-per-task=24
+
+# Load any necessary modules or activate conda environments if needed
+
+# Add your commands here
+
+# Count the lines starting with ">" and output the count to count_proteins.%J.out
+
+count=$(grep -c "^>" Ahem_transcripts_with_reference.fa )
+echo "The number of transcripts is $count" >> count_proteins.$SLURM_JOB_ID.out
+
+# Create a new file with lines starting with ">"
+grep "^>" Ahem_transcripts_with_reference.fa > transcripts_names_in_Ahem_transcripts_with_reference.fasta
+
+# Additional commands if needed
+
+# Count the lines starting with ">" and output the count to count_proteins.%J.out
+
+count=$(grep -c "^>" Ahem_transcripts_with_reference.fa.transdecoder.pep)
+echo "The number of proteins is $count" >> count_proteins.$SLURM_JOB_ID.out
+
+# Create a new file with lines starting with ">"
+grep "^>" Ahem_transcripts_with_reference.fa.transdecoder.pep > transcripts_names_in_Ahem_transcripts_with_reference.fa.transdecoder.pep.fasta
+
+# Additional commands if needed
+
+
+
+
