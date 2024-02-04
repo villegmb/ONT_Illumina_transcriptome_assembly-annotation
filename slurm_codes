@@ -144,96 +144,13 @@ d
 
 TransDecoder.LongOrfs -t Ahem_transcripts_with_reference.fa
 
-RESULT __________________________________________________________
+Use file: /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep  for Pfam and/or BlastP searches to enable homology-based coding region identification.
 
-#################################
-### Done preparing long ORFs.  ###
-##################################
-
-        Use file: /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep  for Pfam and/or BlastP searches to enable homology-based coding region identification.
-
-        Then, run TransDecoder.Predict for your final coding region predictions.
+Then, run TransDecoder.Predict for your final coding region predictions.
 
 Step 2: Identify ORFs with homology 
 
 Optional - blast or pfam searches.
-
-BLAST DATABASES__________________________________________________
-
-SwissProt: 
-ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
-
-TrEMBL: ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz
-
-mv uniprot_sprot.fasta sprot
-
-mv uniprot_trembl.fasta trembl
-
-makeblastdb -in sprot -dbtype prot -title "UniProt/Swiss-Prot (Jan 2024)" -parse_seqids
-
-makeblastdb -in trembl -dbtype prot -title "UniProt/TrEMBL (Jan 2024)" -parse_seqids
-
-NR: 
-makeblastdb -in nr -dbtype prot -title "NCBI nr (Jan 2024)" -parse_seqids
-
-_________________________________________________________________
-
-$ module load ncbi-blast+
-Loading module for ncbi-blast+
-ncbi-blast+ 2.13.0 is now loaded
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J database_nr
-#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/database_nr.%J.out
-#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/database_nr.%J.err
-#SBATCH --time=150:30:00
-#SBATCH --mem=500G
-#SBATCH --cpus-per-task=24
-
-update_blastdb.pl --decompress nr
-
-*to Check all the files and update them
-
-However, I had to use wget to download again many of the files, and decompress it one by one.
-
-wget "link"
-
-_________________________________________________________________
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J ftps_tar_nr_83
-#SBATCH -o ftps_tar_nr_83.%J.out
-#SBATCH -e ftps_tar_nr_83.%J.err
-#SBATCH --time=10:00:00
-#SBATCH --mem=200G
-#SBATCH --cpus-per-task=24
-
-tar zxvf nr.83.tar.gz.1
-
-_________________________________________________________________
-
-BLASTP __________________________________________________________
-
-Running:
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J transcoder_blast_uniprot
-#SBATCH -o /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast_uniprot.%J.out
-#SBATCH -e /ibex/tmp/c2078/Heat_stress_analysis/scripts/transcoder_blast_uniprot.%J.err
-#SBATCH --time=150:30:00
-#SBATCH --mem=500G
-#SBATCH --cpus-per-task=24
-
-blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep \
--db sprot -max_target_seqs 20 \
--outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_20
-							 > blastp.outfmt6
 
 _________________________________________________________________
 
@@ -316,18 +233,13 @@ The final set of candidate coding regions can be found as files '.transdecoder.'
 
 KOFAM __________________________________________________________
 
-
-
-
-
 hmmer/3.3.2
 parallel is already in IBEX. Los amo. Nunca cambien
 
 
 -----------------------------------------------------------------
- VVV
-INTERPROSCSOM
 
+INTERPROSCSOM
 
 InterProScan:
 
@@ -348,16 +260,12 @@ Functional Enrichment Analysis:
 Perform functional enrichment analysis to identify overrepresented Gene Ontology (GO) terms or other functional categories within your dataset. This step helps uncover biological themes and enrichments.
 Data Visualization and Interpretation:
 
-Visualize the annotation results using tools like heatmaps, bar charts, or network diagrams. Interpret the findings in the context of your research question and gain insights into the functional characteristics of your sequences.
+Visualize the annotation results using heatmaps, bar charts, or network diagrams. Interpret the findings in the context of your research question and gain insights into the functional characteristics of your sequences.
 By incorporating InterProScan into your annotation pipeline, you enhance the functional characterization of your sequences by considering a broader range of protein families and domains beyond individual Pfam domains.
-
 
 interproscan.sh -i your_input.fasta -o output_directory -f tsv
 
-
-
-
-
+___________________________________________________________________________
 
 #!/bin/bash --login
 #SBATCH -N 1
@@ -394,5 +302,17 @@ grep "^>" Ahem_transcripts_with_reference.fa.transdecoder.pep > transcripts_name
 # Additional commands if needed
 
 
+# Additional commands if needed
 
+# Count the lines starting with ">" and output the count to count_proteins.%J.out
+
+count=$(grep -c "^>" Ahem_transcripts_with_reference.fa.transdecoder.pep)
+echo "The number of proteins is $count" >> count_proteins.$SLURM_JOB_ID.out
+
+# Create a new file with lines starting with ">"
+grep "^>" Ahem_transcripts_with_reference.fa.transdecoder.pep > transcripts_names_in_Ahem_transcripts_with_reference.fa.transdecoder.pep.fasta
+
+# Additional commands if needed
+
+https://github.com/lyijin/annotating_proteomes/blob/master/README.rst
 
