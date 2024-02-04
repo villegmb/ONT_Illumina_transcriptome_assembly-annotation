@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-import sys  # Import the sys module for writing to stderr
+import sys
 
-def read_transcripts(filename):
+def read_transcripts(transcripts_file):
     transcripts = set()
-    with open(filename, 'r') as file:
+    with open(transcripts_file, 'r') as file:
         for line in file:
-            transcript = line.strip()
-            transcripts.add(transcript)
+            transcripts.add(line.strip())
+            print("line:", line)
     return transcripts
 
 def process_fasta(input_fasta, output_fasta, transcripts_file):
@@ -22,34 +22,42 @@ def process_fasta(input_fasta, output_fasta, transcripts_file):
             line = line.strip()
 
             if line.startswith('>'):
-                # Store previous sequence (if any)
-                if name is not None and ''.join(sequence) != '':
-                    transcript = name.split('.')[0:3]
-                    print("transcript",transcript, file=sys.stderr)
-                    transcript = '.'.join(transcript)
-                    if transcript in transcripts:
-                        output_file.write(f'>{name}\n')
+                # Extract the identifier from the header line
+                #identifier = line.split()[0][1:].split('.')[0:3]
+                #identifier = '.'.join(identifier)
+                identifier = line.split()[0][1:]
+                print("Identifier:", identifier)
+
+                # Check if the identifier matches any transcript name
+                if identifier in transcripts:
+                    if name is not None and ''.join(sequence) != '':
+                        print("Name:", name)
+                        print("Sequence:", ''.join(sequence))
+                        print("Transcripts:", transcripts)
+                        output_file.write(f'{name}\n')
                         output_file.write(''.join(sequence) + '\n')
-                        print("sequence",sequence, file=sys.stderr)
-                # Reset variables for new sequence
-                name = line[1:].split()[0]
-                sequence = []
+
+                    name = line
+                    sequence = []
+                else:
+                    name = None
             else:
-                sequence.append(line)
+                if name is not None:
+                    sequence.append(line)
 
         # Write the last sequence
         if name is not None and ''.join(sequence) != '':
-            transcript = name.split('.')[0:3]
-            transcript = '.'.join(transcript)
-            if transcript in transcripts:
-                output_file.write(f'>{name}\n')
-                output_file.write(''.join(sequence) + '\n')
+            print("Saving in new fasta:")
+            print("Name:", name)
+            print("Sequence:", ''.join(sequence))
+            print("Transcripts:", transcripts)
+            output_file.write(f'{name}\n')
+            output_file.write(''.join(sequence) + '\n')
 
-# File paths
+# Define file paths
+input_fasta="/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep"
+transcripts_file="/ibex/tmp/c2078/Heat_stress_analysis/scripts/extracted_protein_names_without_GOTERM.txt"
+output_fasta="/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/filtered_noGOTERM_long_proteins.fasta"
 
-input_fasta = "/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep"
-transcripts_file = "/ibex/tmp/c2078/Heat_stress_analysis/scripts/output_column_2_no_quotes.txt"
-output_fasta = "/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep_filtered_protein.fasta"
-
-# Process the fasta file
 process_fasta(input_fasta, output_fasta, transcripts_file)
+
