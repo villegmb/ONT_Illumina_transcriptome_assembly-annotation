@@ -328,3 +328,33 @@ grep "^>" Ahem_transcripts_with_reference.fa.transdecoder.pep > transcripts_name
 
 https://github.com/lyijin/annotating_proteomes/blob/master/README.rst
 
+
+(base) [villegmb@login509-02-r scripts]$ more transcriptome_symbiont_25rep1.sh
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J transcriptome_symbiont_25rep1
+#SBATCH -o /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/transcriptom
+e_symbiont_25rep1.%J.out
+#SBATCH -e /ibex/scratch/projects/c2078/Heat_stress_analysis/scripts/transcriptom
+e_symbiont_25rep1.%J.err
+#SBATCH --time=20:30:00
+#SBATCH --mem=100G
+#SBATCH --cpus-per-task=24
+
+seqtk seq -a /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_
+25Rep1/fastq_pass/combined_25rep1.fastq > /ibex/scratch/projects/c2078/Villegmb/2
+0230913_P4U2_2/20230913_P4U2_25Rep1/fastq_pass/combined_25rep1_FASTA.fasta
+
+sed '/>/!s/U/T/g; s/\(>.*\) .*/\1/' /ibex/scratch/projects/c2078/Villegmb/2023091
+3_P4U2_2/20230913_P4U2_25Rep1/fastq_pass/combined_25rep1_FASTA.fasta > /ibex/scra
+tch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_25Rep1/fastq_pass/DNA_F
+ASTA.fasta
+
+export BUSCO_CONFIG_FILE="/path/to/myconfig.ini"
+
+busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/20230913_P4U2_25Re
+p1/fastq_pass/DNA_FASTA.fasta -l alveolata_odb10 -o transcriptome_symbiont_25rep1
+ -m tran -f -c 24
+
+
