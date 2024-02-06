@@ -40,22 +40,48 @@ Another tool you can consider is Sqanti (from the IsoSeq toolkit), which is spec
 
 **3) Transcriptome Assembly:**
 
-I assembled the transcriptome using StringTie because it has a "-mix" option, which allows the assembly of both Illumina and Direct RNA Nanopore sequencing reads simultaneously. This step generates a GTF file containing predicted transcripts. You can include a reference GTF file to 
+I assembled the transcriptome using StringTie because it has a "-mix" option, which allows the assembly of both Illumina and Direct RNA Nanopore sequencing reads simultaneously. This step generates a GTF file containing predicted transcripts. You can include a reference GTF file to keep a relationship with the genome and make the annotation: 
     
     stringtie sorted_illumina_alignment.bam flair_aligned_ONT.bam --mix -p 24 -G reference.gtf -o transcriptome_output.gtf
 
-Creating transcriptome using the GTF
+**4) Creating transcriptome:** 
 
-**3) Transcriptome Evaluation:**
+I used ``gffread`` read to create a FASTA file containing the transcripts base in the genome Fasta file and the GTF generated from the previous step.
+
+		> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta>
+
+**5) Transcriptome Evaluation:**
 
 I used ``BUSCO`` to asses transcriptome completeness.
+
+		> busco -i Ahem_transcripts.fa -l metazoa_odb10 -o transcriptome_stringtie -m tran -f
+
+
+
+
+sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/pro
+jects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta
+
+export BUSCO_CONFIG_FILE="/path/to/myconfig.ini"
+
+busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta -l metazoa_odb10 -o transcripto
+me_AHEM -m tran -f -c 24
+/ibex/tmp/c2078/Heat_stress_analysis/scripts/transcripts_without_predicted_proteins.tsv
+
+
+/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
+
+
 
 -	Visualize the assembled transcripts and the reference genome using genome browsers like IGV or UCSC Genome Browser.
   
 ## **ANNOTATION**
 
 **A)** In this part, TransDecoder identifies possible Open Reading Frames (ORF) in our transcripts and produces a multiFasta file with the longest possible proteins (.pep extension). Then, this file is used to find homologies with protein domains in the PFAM database and annotated proteins in the Swiss-Prot, TrEMBL, and NR databases.
+
 For more information about TransDecoder https://github.com/TransDecoder/TransDecoder/wiki
+
+By default, TransDecoder.LongOrfs will identify ORFs that are at least 100 amino acids long. 
 
 **Step 1:** Extract the long open reading frames
 	
@@ -96,7 +122,7 @@ or you can use the next command from ``ncbi-blast+``:
 
 		> update_blastdb.pl --decompress nr
 
-It checks all the files and updates them. However, while I was running this code, it stopped several times. So, I recommend running it repeatedly until you can see all the decompressed files in the folder. To date (February 2024), you should see up to 83 sets of files. These files are already formatted as a database, so you can skip the "makeblatdb" step you did for the other two databases. 
+It checks all the files and updates them. However, while I was running this code, it stopped several times. So, I recommend running it repeatedly until you can see all the decompressed files in the folder. To date (February 2024), you should see up to 83 sets of files. These files are already formatted as a database, so you can skip the "makeblatdb" step you did for the other two databases. Just ensure you run the blast in the same folder where you stored the databases.
 
 Now we can run Blastp:
 
@@ -121,14 +147,28 @@ _________________________________________________________________
 
 For downloading the database: ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz 
 
-Pfam is for checking for homologies with protein domain families, to run the search we use HMMER (http://hmmer.org/).
+Pfam checks for homologies with protein domain families; we use HMMER (http://hmmer.org/) to run the search.
 
 		> export HMMERDB=/ibex/tmp/c2078/Heat_stress_analysis/scripts/Pfam-A.hmm
 		> hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
 
 **Step 3:** Predict the likely coding regions
+
 		> TransDecoder.Predict -t Ahem_transcripts_with_reference.fa --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6
 
+From this step, I obtained a new Fasta containing the proteins that showed homology to Pfam and Swiss-prot entries. This Fasta file is going to be used then to find GO terms.  
+Usando ese Blastp y el PFAM 
+
+A ver: 
+PFAM me da una lista de proteinas con homologia a algo
+Blasp Swiss prot otra homologia a otra cosa
+
+Pueden haber proteinas que coinciden
+Pueden haber algunas que hacen match con PFAM y no SP
+y vice-versa
+
+
+Con el final PEP luego de predicted es que debería repetir busquedas para encontrar GO 
 
 # IN PROCESS
 
@@ -148,6 +188,29 @@ After aligning the reads, you can use tools designed for isoform detection and q
 I checked using R if there where predicted_proteins from transcoder (including PFAM and Blastp against Swiss-Prot) for all the transcripts. Then I filtered the "longest PEP proteins fasta", to run blast ensembl and NR against this.  
 
 awk -F'\t' '{print $2}' transcripts_without_predicted_proteins.tsv > output_column_2.txt
+https://github.com/meiyang12/Genome-annotation-pipeline?tab=readme-ov-file
+
+
+gffread -E input.gff3 -T -o output.gtf
+
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J gffread_gff_to_gtf
+#SBATCH -o gffread_gff_to_gtf.%J.out
+#SBATCH -e gffread_gff_to_gtf.%J.err
+#SBATCH --time=5:00:00
+#SBATCH --mem=100G
+#SBATCH --cpus-per-task=24
+
+./gffread/gffread -E /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder.gff3 -T -o Ahem_transcripts_with_reference.fa.transdecoder_output.gtf
+
+gffcompare/0.12.7
+
+
+
+cat blastp.outfmt6_trembl_* > merged_output.outfmt6
+
 
 
 
