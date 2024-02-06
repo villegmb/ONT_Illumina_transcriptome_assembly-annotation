@@ -211,7 +211,19 @@ export HMMERDB=/ibex/tmp/c2078/Heat_stress_analysis/scripts/Pfam-A.hmm
 
 hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
 
+(base) [villegmb@login509-02-r scripts]$ more blast_trembl_1.sh
+#!/bin/bash --login
+#SBATCH -N 1
+#SBATCH --partition=batch
+#SBATCH -J blast_trembl_1
+#SBATCH -o blast_trembl_1.%J.out
+#SBATCH -e blast_trembl_1.%J.err
+#SBATCH --time=150:30:00
+#SBATCH --mem=256G
+#SBATCH --cpus-per-task=50
 
+blastp -query /ibex/tmp/c2078/Heat_stress_analysis/scripts/long_proteins_split/output_1.fasta -db trembl -max_target_seqs 20 -outfmt 6 -evalue 1e-5 -num_threads 50 >
+/ibex/tmp/c2078/Heat_stress_analysis/scripts/blast_trembl/blastp.outfmt6_trembl_1
 
 Step 3: predict the likely coding regions
 
