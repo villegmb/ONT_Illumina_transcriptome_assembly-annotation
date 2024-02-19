@@ -25,7 +25,7 @@ First, we must create separate alignments with Illumina and direct ONT reads.
     
     > hisat2 -x reference_index -1 illumina_read1.fastq -2 illumina_read2.fastq -S illumina_alignment.sam
 
-	**C)** Convert SAM to BAM and Sort:
+**C)** Convert SAM to BAM and Sort:
  
     > samtools view -bS illumina_alignment.sam > illumina_alignment.bam 
     > samtools sort -o sorted_illumina_alignment.bam illumina_alignment.bam
@@ -60,24 +60,24 @@ I assembled the transcriptome using StringTie because it has a "-mix" option, wh
 
 I used ``gffread`` read to create a FASTA file containing the transcripts base in the genome Fasta file and the GTF generated from the previous step.
 
-		> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta>
+	> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta>
 
 **5) Transcriptome Evaluation:**
 
 I used ``BUSCO`` to asses transcriptome completeness.
 
-		> busco -i Ahem_transcripts.fa -l metazoa_odb10 -o transcriptome_stringtie -m tran -f
+	> busco -i Ahem_transcripts.fa -l metazoa_odb10 -o transcriptome_stringtie -m tran -f
 		
-		> sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/pro
-jects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta
+	> sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta
 
-		> busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta -l metazoa_odb10 -o transcriptome_AHEM -m tran -f -c 24
+	> busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta -l metazoa_odb10 -o transcriptome_AHEM -m tran -f -c 24
 
 **6) Transcriptome visualization:**
 
 I Visualized the assembled transcripts and the reference genome using IGV genome browser
   
-## **ANNOTATION**
+## **ANNOTATION** 
+Adapted from https://github.com/lyijin/annotating_proteomes/tree/master
 
 **A)** In this part, TransDecoder identifies possible Open Reading Frames (ORF) in our transcripts and produces a multiFasta file with the longest possible proteins (.pep extension). Then, this file is used to find homologies with protein domains in the PFAM database and annotated proteins in the Swiss-Prot, TrEMBL, and NR databases.
 
@@ -160,6 +160,33 @@ Pfam checks for homologies with protein domain families; we use HMMER (http://hm
 
 From this step, I obtained a new Fasta containing the proteins that showed homology to Pfam and Swiss-prot entries. This Fasta file is going to be used then to find GO terms.  
 Con el final PEP luego de predicted es que debería repetir busquedas para encontrar GO 
+
+### **GO TERMS** 
+
+**Step 4:** Prepare GO Terms files
+
+Use wget to download the information needed to match proteins with GO terms:
+- GO annotation file: http://www.geneontology.org/gene-associations/goa_uniprot_all.gaf.gz
+- GO term hierarchy: http://purl.obolibrary.org/obo/go/go-basic.obo
+
+Run the shell script parse_gp_assoc.sh to produce goa_uniprot_all.parsed.gaf and goa_uniprot_all.unique_ids.txt. Take note of the directories where you store those files and modify the paths in the next codes: 
+
+- Modify line 64 of create_go_annots_sprot_trembl.py to where you kept goa_uniprot_all.parsed.gaf.
+- Modify line 53 of get_top_hit_with_amigo_annot.py to where you kept goa_uniprot_all.unique_ids.txt.
+- Modify line 35 of parse_go_obo.py to where you kept go-basic.obo.
+
+NOTE: In Lyijin's pipeline (https://github.com/lyijin/annotating_proteomes/tree/master) at this point he does the step of "Parsing the XML outputs", but as I filtered my proteins directly when I ran blastp using "-evalue 1e-5" and setting the output to be tabular (Output 6), then I skipped this step.
+
+Now to guarantee I keep just the proteins with a GO term, I run the next codes:
+
+	> get_top_hit_with_amigo_annot.py blastp.outfmt6_sprot > spis_vs_sprot.tGO.tsv
+
+	> get_top_hit_with_amigo_annot.py blastp.outfmt6_trembl > spis_vs_trembl.tGO.tsv
+
+I must clarify that I divided my files into many small pieces to save some time. Otherwise, this annotation process would have taken more than a month. For example, I divided the file "longest_orfs.pep" into 100 different files to run the search against trEMBL and NR databases because it takes more than a week (even when I was using 50 threads) because I have access to a supercomputer with different nodes. Then, I merged the output into one file called "blastp.outfmt6_*_complete. For running the "get_top_hit_with_amigo_annot.py" I divided the "blastp.outfmt6_*_complete" taking care that all the proteins from the same transcript were in the same file and then I assigned the go terms for these files.    
+
+
+
 
 # IN PROCESS
 
