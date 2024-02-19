@@ -19,30 +19,42 @@ First, we must create separate alignments with Illumina and direct ONT reads.
   
   **A)** Index the reference genome using ``HISAT2`` or another appropriate indexing tool for short reads
   
-    hisat2-build reference_genome.fasta reference_index
+    > hisat2-build reference_genome.fasta reference_index
 
   **B)** Align Illumina reads to the reference genome
     
-    hisat2 -x reference_index -1 illumina_read1.fastq -2 illumina_read2.fastq -S illumina_alignment.sam 
+    > hisat2 -x reference_index -1 illumina_read1.fastq -2 illumina_read2.fastq -S illumina_alignment.sam
+
+	**C)** Convert SAM to BAM and Sort:
+ 
+    > samtools view -bS illumina_alignment.sam > illumina_alignment.bam 
+    > samtools sort -o sorted_illumina_alignment.bam illumina_alignment.bam
   
   **Long-Reads Alignment:**
   
-  **C)** Align Direct RNA Nanopore reads to the reference genome using the long-read aligner ``minimap2``.
+  **A)** Align Direct RNA Nanopore reads to the reference genome using the long-read aligner ``minimap2``and sort:
     
-    minimap2 -ax splice -uf reference_genome.fasta nanopore_reads.fastq | samtools sort -o nanopore_alignment.bam   
+    > minimap2 -ax splice -uf reference_genome.fasta nanopore_reads.fastq | samtools sort -o nanopore_alignment.bam   
 
-  **D)** Convert SAM to BAM and Sort:
-    
-    samtools view -bS illumina_alignment.sam > illumina_alignment.bam samtools sort -o sorted_illumina_alignment.bam illumina_alignment.bam 
+  **B)** Index the reference genome or transcriptome 
+	
+ 		> flair index -g reference.fasta 
+	 
+	# Align the long reads to the reference 
+ 
+ 		> flair align -r reads.fastq -i index_dir -v 
+	 
+	# Quantify isoform abundance 
+ 
+ 		> flair quantify -r reads.bam -i index_dir -q 
 
-Index the reference genome or transcriptome flair index -g reference.fasta # Align the long reads to the reference flair align -r reads.fastq -i index_dir -v # Quantify isoform abundance flair quantify -r reads.bam -i index_dir -q 
 Another tool you can consider is Sqanti (from the IsoSeq toolkit), which is specifically designed for analyzing isoform diversity and quantification in long-read sequencing data
 
 **3) Transcriptome Assembly:**
 
 I assembled the transcriptome using StringTie because it has a "-mix" option, which allows the assembly of both Illumina and Direct RNA Nanopore sequencing reads simultaneously. This step generates a GTF file containing predicted transcripts. You can include a reference GTF file to keep a relationship with the genome and make the annotation: 
     
-    stringtie sorted_illumina_alignment.bam flair_aligned_ONT.bam --mix -p 24 -G reference.gtf -o transcriptome_output.gtf
+    > stringtie sorted_illumina_alignment.bam flair_aligned_ONT.bam --mix -p 24 -G reference.gtf -o transcriptome_output.gtf
 
 **4) Creating transcriptome:** 
 
@@ -55,25 +67,15 @@ I used ``gffread`` read to create a FASTA file containing the transcripts base i
 I used ``BUSCO`` to asses transcriptome completeness.
 
 		> busco -i Ahem_transcripts.fa -l metazoa_odb10 -o transcriptome_stringtie -m tran -f
-
-
-
-
-sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/pro
+		
+		> sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/pro
 jects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta
 
-export BUSCO_CONFIG_FILE="/path/to/myconfig.ini"
+		> busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta -l metazoa_odb10 -o transcriptome_AHEM -m tran -f -c 24
 
-busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta -l metazoa_odb10 -o transcripto
-me_AHEM -m tran -f -c 24
-/ibex/tmp/c2078/Heat_stress_analysis/scripts/transcripts_without_predicted_proteins.tsv
+**6) Transcriptome visualization:**
 
-
-/ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
-
-
-
--	Visualize the assembled transcripts and the reference genome using genome browsers like IGV or UCSC Genome Browser.
+I Visualized the assembled transcripts and the reference genome using IGV genome browser
   
 ## **ANNOTATION**
 
@@ -122,7 +124,7 @@ or you can use the next command from ``ncbi-blast+``:
 
 		> update_blastdb.pl --decompress nr
 
-It checks all the files and updates them. However, while I was running this code, it stopped several times. So, I recommend running it repeatedly until you can see all the decompressed files in the folder. To date (February 2024), you should see up to 83 sets of files. These files are already formatted as a database, so you can skip the "makeblatdb" step you did for the other two databases. Just ensure you run the blast in the same folder where you stored the databases.
+It checks all the files and updates them. However, while I was running this code, it stopped several times. So, I recommend running it repeatedly until you can see all the decompressed files in the folder. To date (February 2024), you should see up to 83 sets of files. These files are already formatted as a database, so you can skip the "makeblatdb" step you did for the other two databases. Please ensure you run the blast in the same folder where you stored the databases.
 
 Now we can run Blastp:
 
@@ -157,17 +159,6 @@ Pfam checks for homologies with protein domain families; we use HMMER (http://hm
 		> TransDecoder.Predict -t Ahem_transcripts_with_reference.fa --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6
 
 From this step, I obtained a new Fasta containing the proteins that showed homology to Pfam and Swiss-prot entries. This Fasta file is going to be used then to find GO terms.  
-Usando ese Blastp y el PFAM 
-
-A ver: 
-PFAM me da una lista de proteinas con homologia a algo
-Blasp Swiss prot otra homologia a otra cosa
-
-Pueden haber proteinas que coinciden
-Pueden haber algunas que hacen match con PFAM y no SP
-y vice-versa
-
-
 Con el final PEP luego de predicted es que debería repetir busquedas para encontrar GO 
 
 # IN PROCESS
