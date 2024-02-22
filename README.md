@@ -58,9 +58,15 @@ I assembled the transcriptome using StringTie because it has a "-mix" option, wh
 
 **4) Creating transcriptome:** 
 
-I used ``gffread`` read to create a FASTA file containing the transcripts base in the genome Fasta file and the GTF generated from the previous step.
+I used ``gffread`` read to create a FASTA file containing the transcripts base in the genome Fasta file and the GTF generated from the previous step. (WRONG)
 
-	> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta>
+	> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta> (WRONG)
+
+	> ./TransDecoder/util/gtf_genome_to_cdna_fasta.pl transcriptome_output.gtf reference_genome.fasta > assemblied_transcriptome.fasta
+
+ You also need to change the GTF to GFF3 as Transdecoder uses this kind of file.
+
+ 	> ./TransDecoder/util/gtf_to_alignment_gff3.pl transcriptome_output.gtf > transcripts.gff3
 
 **5) Transcriptome Evaluation:**
 
@@ -128,9 +134,14 @@ It checks all the files and updates them. However, while I was running this code
 
 Now we can run Blastp:
 
+		for transdecoder:
+		> blast -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> -db sprot -max_target_seqs 1 \
+		> -outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_1_sprot
+	
 		> blast -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
 		> -db sprot -max_target_seqs 20 \
-		> -outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_sprot
+		> -outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_20_sprot
 _________________________________________________________________
 
 		> blastp -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
@@ -156,12 +167,20 @@ Pfam checks for homologies with protein domain families; we use HMMER (http://hm
 
 **Step 3:** Predict the likely coding regions
 
-		> TransDecoder.Predict -t Ahem_transcripts_with_reference.fa --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6
+		> TransDecoder.Predict -t <assemblied_transcriptome.fasta> --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6_1_sprot
 
-From this step, I obtained a new Fasta containing the proteins that showed homology to Pfam and Swiss-prot entries. This Fasta file is going to be used then to find GO terms.  
-Con el final PEP luego de predicted es que debería repetir busquedas para encontrar GO 
+From this step, I obtained a new Fasta containing the proteins that showed homology to Pfam and Swiss-prot entries. I also get a new gff3 with the annotation information for the predicted proteins then I am going to produce the final GFF3 with genomic coordinates:
 
-### **GO TERMS** 
+		> ./TransDecoder/util/cdna_alignment_orf_to_genome_orf.pl \
+		> ./Ahem_transcripts_with_reference.fa.transdecoder.gff3 \
+		> transcripts.gff3 \
+		> transcripts_util.fasta > transcripts.fasta.transdecoder.genome_coordinates.gff3
+
+ I then transformed GFF3 to GTF because some downstream analysis require it:
+
+ 
+
+### **GO TERMS ANNOTATION** 
 
 **Step 4:** Prepare GO Terms files
 
