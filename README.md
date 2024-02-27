@@ -58,15 +58,11 @@ I assembled the transcriptome using StringTie because it has a "-mix" option, wh
 
 **4) Creating transcriptome:** 
 
-I used ``gffread`` read to create a FASTA file containing the transcripts base in the genome Fasta file and the GTF generated from the previous step. (WRONG)
+NOTE: If you are using TransDecoder to predict protein regions skip this step and use the TransDecoder utility to produce the fasta with the transcripts (Step 6)
 
-	> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta> (WRONG)
+``gffread`` read to create a FASTA file containing the transcripts base in the genome Fasta file and the GTF generated from the previous step.
 
-	> ./TransDecoder/util/gtf_genome_to_cdna_fasta.pl transcriptome_output.gtf reference_genome.fasta > assemblied_transcriptome.fasta
-
- You also need to change the GTF to GFF3 as Transdecoder uses this kind of file.
-
- 	> ./TransDecoder/util/gtf_to_alignment_gff3.pl transcriptome_output.gtf > transcripts.gff3
+	> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta> 
 
 **5) Transcriptome Evaluation:**
 
@@ -74,28 +70,37 @@ I used ``BUSCO`` to asses transcriptome completeness.
 
 	> busco -i Ahem_transcripts.fa -l metazoa_odb10 -o transcriptome_stringtie -m tran -f
 		
-	> sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta
+	> sed '/>/!s/U/T/g' /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_rename.fasta > Ahem_transcript_DNA.fasta
 
 	> busco -i /ibex/scratch/projects/c2078/Villegmb/20230913_P4U2_2/Ahem_transcript_DNA.fasta -l metazoa_odb10 -o transcriptome_AHEM -m tran -f -c 24
-
-**6) Transcriptome visualization:**
+ 
+ **6) Transcriptome visualization:**
 
 I Visualized the assembled transcripts and the reference genome using IGV genome browser
-  
+ 
 ## **ANNOTATION** 
-Adapted from https://github.com/lyijin/annotating_proteomes/tree/master
+
+### TRANSDECODER
 
 **A)** In this part, TransDecoder identifies possible Open Reading Frames (ORF) in our transcripts and produces a multiFasta file with the longest possible proteins (.pep extension). Then, this file is used to find homologies with protein domains in the PFAM database and annotated proteins in the Swiss-Prot, TrEMBL, and NR databases.
 
 For more information about TransDecoder https://github.com/TransDecoder/TransDecoder/wiki
 
-By default, TransDecoder.LongOrfs will identify ORFs that are at least 100 amino acids long. 
+**Step 0:**
+
+	> ./TransDecoder/util/gtf_genome_to_cdna_fasta.pl transcriptome_output.gtf reference_genome.fasta > transcripts.fasta
+
+ You must also convert the GTF to GFF3, as TransDecoder uses this format.
+
+ 	> ./TransDecoder/util/gtf_to_alignment_gff3.pl transcriptome_output.gtf > transcripts.gff3
 
 **Step 1:** Extract the long open reading frames
-	
- 	> TransDecoder.LongOrfs -t <assemblied_transcriptome.fasta>
 
-TransDecoder produces a file in a new directory "./<assemblied_transcriptome.fasta>.transdecoder_dir/", where you can find the file "longest_orfs.pep" that we are going to use in the next step. 
+	By default, TransDecoder.LongOrfs will identify ORFs that are at least 100 amino acids long. 
+
+ 	> TransDecoder.LongOrfs -t <transcripts.fasta>
+
+TransDecoder produces a file in a new directory "./<transcripts.fasta>.transdecoder_dir/", where you can find the file "longest_orfs.pep" that we are going to use in the next step. 
 
 **Step 2:** Identify ORFs with homology 
 
@@ -104,7 +109,7 @@ To search for homologies, we need to download and decompress the files to create
 _________________________________________________________________
 **Databases**
 
-**2.1)** Use these links to download the files, and decompress them:
+**2.1)** Use these links to download the files and decompress them:
 
 **SwissProt:** ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
 
@@ -112,7 +117,7 @@ _________________________________________________________________
 
 **2.2)** Rename the files and use ``ncbi-blast+`` (I used version 2.13.0) to create the blast databases:
 
-		> mv uniprot_sprot.fasta sport
+		> mv uniprot_sprot.fasta sprot
 		> mv uniprot_trembl.fasta trembl
 		> makeblastdb -in sprot -dbtype prot -title "UniProt/Swiss-Prot (Jan 2024)" -parse_seqids
 		> makeblastdb -in trembl -dbtype prot -title "UniProt/TrEMBL (Jan 2024)" -parse_seqids
@@ -135,22 +140,22 @@ It checks all the files and updates them. However, while I was running this code
 Now we can run Blastp:
 
 		for transdecoder:
-		> blast -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> blast -query /.../<transcripts.fasta>.transdecoder_dir/longest_orfs.pep \
 		> -db sprot -max_target_seqs 1 \
 		> -outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_1_sprot
 	
-		> blast -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> blast -query /.../<transcripts.fasta>.transdecoder_dir/longest_orfs.pep \
 		> -db sprot -max_target_seqs 20 \
 		> -outfmt 6 -evalue 1e-5 -num_threads 24 > blastp.outfmt6_20_sprot
 _________________________________________________________________
 
-		> blastp -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> blastp -query /.../<transcripts.fasta>.transdecoder_dir/longest_orfs.pep \
 		> -db trembl -max_target_seqs 20 \
 		> -outfmt 6 -evalue 1e-5 -num_threads 50 > blastp.outfmt6_trembl
 
 _________________________________________________________________
 
-		> blastp -query /.../<assemblied_transcriptome.fasta>.transdecoder_dir/longest_orfs.pep \
+		> blastp -query /.../<transcripts.fasta>.transdecoder_dir/longest_orfs.pep \
 		> -db nr -max_target_seqs 20 \
 		> -outfmt 6 -evalue 1e-5 -num_threads 50 > blastp.outfmt6_nr
 
@@ -162,25 +167,28 @@ For downloading the database: ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_rel
 
 Pfam checks for homologies with protein domain families; we use HMMER (http://hmmer.org/) to run the search.
 
-		> export HMMERDB=/ibex/tmp/c2078/Heat_stress_analysis/scripts/Pfam-A.hmm
-		> hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder_dir/longest_orfs.pep
+		> export HMMERDB=/.../Pfam-A.hmm
+		> hmmsearch --cpu 24 -E 1e-10 --domtblout pfam.domtblout $HMMERDB /.../<transcripts.fasta>.transdecoder_dir/longest_orfs.pep
 
 **Step 3:** Predict the likely coding regions
 
-		> TransDecoder.Predict -t <assemblied_transcriptome.fasta> --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6_1_sprot
+		> TransDecoder.Predict -t <transcripts.fasta> --retain_pfam_hits pfam.domtblout --retain_blastp_hits blastp.outfmt6_1_sprot
 
-From this step, I obtained a new Fasta containing the proteins that showed homology to Pfam and Swiss-prot entries. I also get a new gff3 with the annotation information for the predicted proteins then I am going to produce the final GFF3 with genomic coordinates:
+From this step, I obtained a new Fasta containing the proteins that showed homology to Pfam and Swiss-prot entries. I also get a new GFF3 with the annotation information for the predicted proteins, then I am going to produce the final GFF3 with genomic coordinates:
 
 		> ./TransDecoder/util/cdna_alignment_orf_to_genome_orf.pl \
-		> ./Ahem_transcripts_with_reference.fa.transdecoder.gff3 \
+		> ./<transcripts.fasta>.transdecoder.gff3 \
 		> transcripts.gff3 \
-		> transcripts_util.fasta > transcripts.fasta.transdecoder.genome_coordinates.gff3
+		> <transcripts.fasta> > <transcripts.fasta>.transdecoder.genome_coordinates.gff3
 
- I then transformed GFF3 to GTF because some downstream analysis require it:
+ Then, you can use gffread to get a new fasta with the predicted transcripts using the final GFF3:
 
+	> ./gffread/gffread <transcripts.fasta>.transdecoder.genome_coordinates.gff3 -g reference_genome.fasta -w <new_transcripts_using_transdecoder_final_GFF3.fasta>
  
 
 ### **GO TERMS ANNOTATION** 
+
+Adapted from https://github.com/lyijin/annotating_proteomes/
 
 **Step 4:** Prepare GO Terms files
 
