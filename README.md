@@ -25,36 +25,25 @@ First, we must create separate alignments with Illumina and direct ONT reads.
     
     > hisat2 -x reference_index -1 illumina_read1.fastq -2 illumina_read2.fastq -S illumina_alignment.sam
 
-**C)** Convert SAM to BAM and Sort:
+**C)** Convert SAM to BAM, Sort and Index:
  
     > samtools view -bS illumina_alignment.sam > illumina_alignment.bam 
     > samtools sort -o sorted_illumina_alignment.bam illumina_alignment.bam
-  
+		> samtools index sorted_illumina_alignment.bam
+	
   **Long-Reads Alignment:**
   
-  **A)** Align Direct RNA Nanopore reads to the reference genome using the long-read aligner ``minimap2``and sort:
+  **A)** Align Direct RNA Nanopore reads to the reference genome using the long-read aligner ``flair``, sort and index:
     
-    > minimap2 -ax splice -uf reference_genome.fasta nanopore_reads.fastq | samtools sort -o nanopore_alignment.bam   
-
-  **B)** Index the reference genome or transcriptome 
-	
- 		> flair index -g reference.fasta 
-	 
-	# Align the long reads to the reference 
- 
- 		> flair align -r reads.fastq -i index_dir -v 
-	 
-	# Quantify isoform abundance 
- 
- 		> flair quantify -r reads.bam -i index_dir -q 
-
-Another tool you can consider is Sqanti (from the IsoSeq toolkit), which is specifically designed for analyzing isoform diversity and quantification in long-read sequencing data
+   	> flair align -g genome.fa -r <reads.fq>|<reads.fa> --threads 24
+		> samtools sort -o sorted_flair.aligned.bam flair.aligned.bam
+		> samtools index sorted_flair.aligned.bam
 
 **3) Transcriptome Assembly:**
 
 I assembled the transcriptome using StringTie because it has a "-mix" option, which allows the assembly of both Illumina and Direct RNA Nanopore sequencing reads simultaneously. This step generates a GTF file containing predicted transcripts. You can include a reference GTF file to keep a relationship with the genome and make the annotation: 
     
-    > stringtie sorted_illumina_alignment.bam flair_aligned_ONT.bam --mix -p 24 -G reference.gtf -o transcriptome_output.gtf
+    > stringtie sorted_illumina_alignment.bam sorted_flair.aligned.bam --mix -p 24 -G reference.gtf -o transcriptome_output.gtf
 
 **4) Creating transcriptome:** 
 
