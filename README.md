@@ -34,7 +34,9 @@ First, we must create separate alignments with Illumina and direct ONT reads.
   **Long-Reads Alignment:**
   
   **A)** Align Direct RNA Nanopore reads to the reference genome using the long-read aligner ``flair``, sort and index:
-    
+
+		flair uses ``minimap2 -ax splice`` which is recommended in Stringtie's manual	
+	
    	> flair align -g genome.fa -r <reads.fq>|<reads.fa> --threads 24
 		> samtools sort -o sorted_flair.aligned.bam flair.aligned.bam
 		> samtools index sorted_flair.aligned.bam
@@ -43,15 +45,15 @@ First, we must create separate alignments with Illumina and direct ONT reads.
 
 I assembled the transcriptome using StringTie because it has a "-mix" option, which allows the assembly of both Illumina and Direct RNA Nanopore sequencing reads simultaneously. This step generates a GTF file containing predicted transcripts. You can include a reference GTF file to keep a relationship with the genome and make the annotation: 
     
-    > stringtie sorted_illumina_alignment.bam sorted_flair.aligned.bam --mix -p 24 -G reference.gtf -o transcriptome_output.gtf
+    > stringtie sorted_illumina_alignment.bam sorted_flair.aligned.bam --mix -p 24 -G reference.gtf -o transcriptome_annotation_output.gtf
 
 **4) Creating transcriptome:** 
 
-NOTE: If you are using TransDecoder to predict protein regions skip this step and use the TransDecoder utility to produce the fasta with the transcripts (Step 6)
+NOTE: If you are using TransDecoder to predict protein regions skip this step and use the TransDecoder utility to produce the fasta with the transcripts (ANNOTATION -> TRANSDECODER. A - Step 0)
 
 ``gffread`` read to create a FASTA file containing the transcripts base in the genome Fasta file and the GTF generated from the previous step.
 
-	> ./gffread/gffread -w transcriptome_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta> 
+	> ./gffread/gffread -w transcriptome_annotation_output.gtf -g <genome.fasta> <assemblied_transcriptome.fasta> 
 
 **5) Transcriptome Evaluation:**
 
@@ -65,7 +67,7 @@ I used ``BUSCO`` to asses transcriptome completeness.
  
  **6) Transcriptome visualization:**
 
-I Visualized the assembled transcripts and the reference genome using IGV genome browser
+I visualized the assembled transcripts, the GTF and the reference genome using IGV genome browser
  
 ## **ANNOTATION** 
 
@@ -77,17 +79,17 @@ For more information about TransDecoder https://github.com/TransDecoder/TransDec
 
 **Step 0:**
 
-	> ./TransDecoder/util/gtf_genome_to_cdna_fasta.pl transcriptome_output.gtf reference_genome.fasta > transcripts.fasta
+	> ./TransDecoder/util/gtf_genome_to_cdna_fasta.pl transcriptome_annotation_output.gtf reference_genome.fasta > transcripts.fasta
 
  You must also convert the GTF to GFF3, as TransDecoder uses this format.
 
- 	> ./TransDecoder/util/gtf_to_alignment_gff3.pl transcriptome_output.gtf > transcripts.gff3
+ 	> ./TransDecoder/util/gtf_to_alignment_gff3.pl transcriptome_annotation_output.gtf > transcripts.gff3
 
 **Step 1:** Extract the long open reading frames
 
 	By default, TransDecoder.LongOrfs will identify ORFs that are at least 100 amino acids long. 
 
- 	> TransDecoder.LongOrfs -t <transcripts.fasta>
+ 	> TransDecoder.LongOrfs -t transcripts.fasta
 
 TransDecoder produces a file in a new directory "./<transcripts.fasta>.transdecoder_dir/", where you can find the file "longest_orfs.pep" that we are going to use in the next step. 
 
@@ -170,10 +172,12 @@ From this step, I obtained a new Fasta containing the proteins that showed homol
 		> transcripts.gff3 \
 		> <transcripts.fasta> > <transcripts.fasta>.transdecoder.genome_coordinates.gff3
 
- Then, you can use gffread to get a new fasta with the predicted transcripts using the final GFF3:
+ Then, you can use ´´gffread´´ (0.12.7) to get a new fasta with the predicted transcripts using the final GFF3:
 
 	> ./gffread/gffread <transcripts.fasta>.transdecoder.genome_coordinates.gff3 -g reference_genome.fasta -w <new_transcripts_using_transdecoder_final_GFF3.fasta>
- 
+
+or you can convert GFF3 to GTF, and use the GTF to produce the final fasta file using TransDecoder utilities.
+
 
 ### **GO TERMS ANNOTATION** 
 
@@ -193,59 +197,28 @@ Run the shell script parse_gp_assoc.sh to produce goa_uniprot_all.parsed.gaf and
 
 NOTE: In Lyijin's pipeline (https://github.com/lyijin/annotating_proteomes/tree/master) at this point he does the step of "Parsing the XML outputs", but as I filtered my proteins directly when I ran blastp using "-evalue 1e-5" and setting the output to be tabular (Output 6), then I skipped this step.
 
-Now to guarantee I keep just the proteins with a GO term, I run the next codes:
+Now, to guarantee I keep just the proteins with a GO term, I run the following codes:
 
 	> get_top_hit_with_amigo_annot.py blastp.outfmt6_sprot > spis_vs_sprot.tGO.tsv
 
 	> get_top_hit_with_amigo_annot.py blastp.outfmt6_trembl > spis_vs_trembl.tGO.tsv
 
-I must clarify that I divided my files into many small pieces to save some time. Otherwise, this annotation process would have taken more than a month. For example, I divided the file "longest_orfs.pep" into 100 different files to run the search against trEMBL and NR databases because it takes more than a week (even when I was using 50 threads) because I have access to a supercomputer with different nodes. Then, I merged the output into one file called "blastp.outfmt6_*_complete. For running the "get_top_hit_with_amigo_annot.py" I divided the "blastp.outfmt6_*_complete" taking care that all the proteins from the same transcript were in the same file and then I assigned the go terms for these files.    
+I must clarify that I divided my files into many small pieces to save some time. Otherwise, this annotation process would have taken more than a month. For example, I divided the file "longest_orfs.pep" into 100 different files to run the search against trEMBL and NR databases because it takes more than a week (even when I was using 50 threads). I can access a supercomputer with different nodes to run many processes in parallel. Then, I merged the output into one file called "blastp.outfmt6_*_complete. For running the "get_top_hit_with_amigo_annot.py" I divided the "blastp.outfmt6_*_complete," taking care that all the proteins from the same transcript were in the same file, and then I assigned the go terms for these files.    
+
+Follow his pipeline to finish the annotation process.
 
 
+Now, the transcriptome is annotated and ready to use for your analysis. 
 
+# ANALYSIS
 
-# IN PROCESS
+Some examples of analysis I did:
 
-Quantification and Differential Expression Analysis:
--	Quantify gene expression using tools like featureCounts or Salmon.
--	Perform differential expression analysis using tools like DESeq2 or edgeR
--	Isoform Identification:
-Use tools like FLAIR, SQANTI, or TAMA to classify and identify isoforms. These tools leverage long-read information to identify full-length isoforms.
-- Compare with Reference Annotation:
-Compare the assembled transcriptome with a reference annotation (if available) using tools like gffcompare.
-- Isoform Detection and Quantification:
-After aligning the reads, you can use tools designed for isoform detection and quantification. One popular tool for this purpose is Flair. Flair combines information from splice junctions and poly(A) sites to identify and quantify full-length isoforms. You can find it here: Flair GitHub repository.
-#flair align -r <genome_annotation.gtf> -b <input_bam_file1> <input_bam_file2> ... -o <output_directory>
+**1)** Differential Gene Expression Analysis
+**2)** Differential Isoforms Usage and Alternative Splicing
 
+https://github.com/villegmb/ONT_Transcriptome_analysis
 
+**3)** Identification of mRNA modifications
 
-I checked using R if there where predicted_proteins from transcoder (including PFAM and Blastp against Swiss-Prot) for all the transcripts. Then I filtered the "longest PEP proteins fasta", to run blast ensembl and NR against this.  
-
-awk -F'\t' '{print $2}' transcripts_without_predicted_proteins.tsv > output_column_2.txt
-https://github.com/meiyang12/Genome-annotation-pipeline?tab=readme-ov-file
-
-
-gffread -E input.gff3 -T -o output.gtf
-
-#!/bin/bash --login
-#SBATCH -N 1
-#SBATCH --partition=batch
-#SBATCH -J gffread_gff_to_gtf
-#SBATCH -o gffread_gff_to_gtf.%J.out
-#SBATCH -e gffread_gff_to_gtf.%J.err
-#SBATCH --time=5:00:00
-#SBATCH --mem=100G
-#SBATCH --cpus-per-task=24
-
-./gffread/gffread -E /ibex/tmp/c2078/Heat_stress_analysis/scripts/Ahem_transcripts_with_reference.fa.transdecoder.gff3 -T -o Ahem_transcripts_with_reference.fa.transdecoder_output.gtf
-
-gffcompare/0.12.7
-
-
-
-cat blastp.outfmt6_trembl_* > merged_output.outfmt6
-
-
-
-
-
+https://github.com/villegmb/Methylation_ONT_transcriptome
