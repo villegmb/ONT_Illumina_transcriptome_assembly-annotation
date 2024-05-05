@@ -215,6 +215,8 @@ Now, the transcriptome is annotated and ready to use for your analysis.
 Some examples of analysis I did:
 
 **1)** Differential Gene Expression Analysis
+
+
 **2)** Differential Isoforms Usage and Alternative Splicing
 
 https://github.com/villegmb/ONT_Transcriptome_analysis
