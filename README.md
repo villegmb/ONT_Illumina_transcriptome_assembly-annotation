@@ -208,6 +208,16 @@ I must clarify that I divided my files into many small pieces to save some time.
 Follow his pipeline to finish the annotation process.
 
 
+#----------------------------------------------------------------------------------------
+
+Additionally, if you want to run a KEGG enrichment analysis you need to get KO terms for your genes (proteins). I used KOFAM:
+
+https://www.genome.jp/tools/kofamkoala/
+
+How to run Kofamscan? https://taylorreiter.github.io/2019-05-11-kofamscan/
+
+#----------------------------------------------------------------------------------------
+
 Now, the transcriptome is annotated and ready to use for your analysis. 
 
 # ANALYSIS
